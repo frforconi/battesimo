@@ -1,31 +1,14 @@
 {
   "version": 2,
-  "builds": [
+  "cleanUrls": true,
+  "rewrites": [
     {
-      "src": "frontend/dist/frontend/browser/**",
-      "use": "@vercel/static"
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
     },
     {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/api/auth/logout",
-      "dest": "/api/auth/logout"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/dist/frontend/browser/$1"
-    },
-    {
-      "src": "/",
-      "dest": "/frontend/dist/frontend/browser/index.html"
+      "source": "/(.*)",
+      "destination": "/frontend/dist/frontend/browser/$1"
     }
   ]
 }
