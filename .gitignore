@@ -8,3 +8,5 @@ frontend/dist/
 frontend/.angular
 .vscode
 api/scripts
+.vercel
+.env*.local
