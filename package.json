@@ -1,0 +1,9 @@
+{
+  "name": "drive-gallery",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "dev:api": "node api/server-local.js",
+    "dev:frontend": "cd frontend && ng serve"
+  }
+}

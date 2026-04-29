@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/dist/frontend/browser/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/api/auth/logout",
+      "dest": "/api/auth/logout"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/dist/frontend/browser/$1"
+    },
+    {
+      "src": "/",
+      "dest": "/frontend/dist/frontend/browser/index.html"
+    }
+  ],
+  "env": {
+    "GOOGLE_CLIENT_ID": "@google_client_id",
+    "GOOGLE_CLIENT_SECRET": "@google_client_secret",
+    "GOOGLE_DRIVE_REFRESH_TOKEN": "@google_drive_refresh_token",
+    "JWT_SECRET": "@jwt_secret",
+    "FRONTEND_URL": "@frontend_url"
+  }
+}

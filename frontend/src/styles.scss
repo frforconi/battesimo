@@ -1,0 +1,15 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0d0d12;
+  color: #f0ece8;
+}
+
+img { display: block; }
+
+button { font-family: inherit; }
