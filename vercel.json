@@ -7,8 +7,16 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/(assets/.*)",
       "destination": "/frontend/dist/frontend/browser/$1"
+    },
+    {
+      "source": "/(.*\\.[a-z0-9]+)$",
+      "destination": "/frontend/dist/frontend/browser/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/dist/frontend/browser/index.html"
     }
   ]
 }
