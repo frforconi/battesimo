@@ -66,6 +66,12 @@ import { DriveService, DriveImage } from '../drive/drive.service';
               />
               <div class="card-overlay">
                 <span class="card-name">{{ img.name }}</span>
+                <button class="download-icon-btn" (click)="download($event, img.id)" title="Download original">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 15L12 3M12 15L8 11M12 15L16 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 17L2 18C2 19.6569 3.34315 21 5 21L19 21C20.6569 21 22 19.6569 22 18L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -95,7 +101,16 @@ import { DriveService, DriveImage } from '../drive/drive.service';
             [alt]="currentLightboxImage()!.name"
             (error)="onImgError($event)"
           />
-          <p class="lb-caption">{{ currentLightboxImage()!.name }}</p>
+          <div class="lb-footer">
+            <p class="lb-caption">{{ currentLightboxImage()!.name }}</p>
+            <button class="lb-download" (click)="download($event, currentLightboxImage()!.id)">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 15L12 3M12 15L8 11M12 15L16 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 17L2 18C2 19.6569 3.34315 21 5 21L19 21C20.6569 21 22 19.6569 22 18L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Download Original
+            </button>
+          </div>
         </div>
 
         <button class="lb-nav lb-next" (click)="nextImage($event)" [disabled]="lightboxIndex() === images().length - 1">›</button>
@@ -201,8 +216,19 @@ import { DriveService, DriveImage } from '../drive/drive.service';
       font-family: 'DM Sans', sans-serif;
       font-size: 0.72rem; color: #fff;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      max-width: 100%;
+      flex: 1; margin-right: 0.5rem;
     }
+
+    .download-icon-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      width: 28px; height: 28px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .download-icon-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.1); }
+    .download-icon-btn svg { width: 14px; height: 14px; }
 
     /* ── Skeleton ── */
     .skeleton-grid { columns: 4; column-gap: 1rem; }
@@ -321,6 +347,23 @@ import { DriveService, DriveImage } from '../drive/drive.service';
       font-family: 'DM Sans', sans-serif;
       font-size: 0.82rem; color: rgba(255,255,255,0.45);
     }
+
+    .lb-footer {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; margin-top: 0.5rem;
+    }
+
+    .lb-download {
+      background: rgba(150,120,255,0.2);
+      border: 1px solid rgba(150,120,255,0.4);
+      color: rgba(150,120,255,0.9);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.75rem; padding: 0.4rem 1rem;
+      border-radius: 6px; cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .lb-download:hover { background: rgba(150,120,255,0.3); color: #fff; }
+    .lb-download svg { width: 14px; height: 14px; }
   `],
 })
 export class GalleryComponent implements OnInit, OnDestroy {
@@ -422,6 +465,11 @@ export class GalleryComponent implements OnInit, OnDestroy {
   onImgError(event: Event): void {
     (event.target as HTMLImageElement).src =
       'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23222" width="100" height="100"/%3E%3Ctext x="50" y="55" text-anchor="middle" fill="%23555" font-size="30"%3E🖼%3C/text%3E%3C/svg%3E';
+  }
+
+  download(event: Event, fileId: string): void {
+    event.stopPropagation();
+    this.drive.downloadImage(fileId);
   }
 
   logout(): void {

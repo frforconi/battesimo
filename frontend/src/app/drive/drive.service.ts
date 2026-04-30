@@ -30,4 +30,11 @@ export class DriveService {
     // withCredentials is handled globally by the interceptor
     return this.http.get<ImagesResponse>('/api/drive/images', { params });
   }
+
+  downloadImage(fileId: string): void {
+    // Simply redirect to the API endpoint. The browser will handle the download
+    // because of the Content-Disposition header, and will send the auth cookie.
+    window.location.href = `/api/drive/download?fileId=${fileId}`;
+  }
 }
+
