@@ -13,8 +13,8 @@ import { CommonModule } from '@angular/common';
       <div class="content">
         <div class="brand">
           <div class="logo">◈</div>
-          <h1>Drive Gallery</h1>
-          <p class="tagline">Your memories, beautifully presented</p>
+          <h1>Gallery</h1>
+          <p class="tagline">Take a look at the photos</p>
         </div>
         <div class="card">
           <p class="prompt">Sign in to view the collection</p>

@@ -20,7 +20,7 @@ import { DriveService, DriveImage } from '../drive/drive.service';
       <header class="header">
         <div class="header-left">
           <span class="logo-mark">◈</span>
-          <span class="site-name">Drive Gallery</span>
+          <span class="site-name">Gallery</span>
         </div>
         <div class="header-right" *ngIf="user()">
           <img class="avatar" [src]="user()!.picture" [alt]="user()!.name" />

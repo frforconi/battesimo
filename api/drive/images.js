@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
 
   if (!requireAuth(req, res)) return;
 
-  const { pageToken, folderId, limit = "30" } = req.query;
+  const { pageToken, folderId, limit = "32" } = req.query;
 
   try {
     const drive = getDriveClient();
