@@ -1,6 +1,7 @@
 {
   "version": 2,
   "cleanUrls": true,
+  "outputDirectory": "dist/browser",
   "rewrites": [
     {
       "source": "/api/(.*)",
