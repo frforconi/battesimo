@@ -1,11 +1,11 @@
 {
-  "buildCommand": "cd frontend && npm run build",
+  "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist/browser",
-  "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "source": "/api/:match*",
+      "destination": "/api/:match*"
     },
     {
       "source": "/:path*",
