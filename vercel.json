@@ -1,14 +1,14 @@
 {
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist/browser",
-  "rewrites": [
+   "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
     },
     {
-      "source": "/(.*)",
-      "destination": "frontend/dist/browser/index.html"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
