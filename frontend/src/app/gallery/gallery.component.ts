@@ -56,12 +56,11 @@ import { DriveService, DriveImage } from '../drive/drive.service';
             *ngFor="let img of images(); let i = index"
             [style.animation-delay]="(i % 12) * 40 + 'ms'"
             (click)="openLightbox(i)">
-            <div class="card-inner" [style.aspect-ratio]="img.width && img.height ? img.width + '/' + img.height : '1/1'">
+            <div class="card-inner">
               <img
                 [src]="img.thumbnailUrl"
                 [alt]="img.name"
                 loading="lazy"
-                [style.aspect-ratio]="img.width && img.height ? img.width + '/' + img.height : '1/1'"
                 (error)="onImgError($event)"
               />
               <div class="card-overlay">
@@ -173,20 +172,22 @@ import { DriveService, DriveImage } from '../drive/drive.service';
 
     /* ── Grid ── */
     .grid {
-      columns: 4;
-      column-gap: 1rem;
-      @media (max-width: 1200px) { columns: 3; }
-      @media (max-width: 800px)  { columns: 2; }
-      @media (max-width: 500px)  { columns: 1; }
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      @media (max-width: 600px) {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 0.75rem;
+      }
     }
 
     .card {
-      break-inside: avoid;
-      margin-bottom: 1rem;
-      border-radius: 10px;
+      position: relative;
+      border-radius: 12px;
       overflow: hidden;
       cursor: pointer;
       animation: cardIn 0.5s ease both;
+      background: rgba(255,255,255,0.03);
     }
 
     @keyframes cardIn {
@@ -194,11 +195,19 @@ import { DriveService, DriveImage } from '../drive/drive.service';
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    .card-inner { position: relative; background: rgba(255,255,255,0.03); }
+    .card-inner { 
+      position: relative; 
+      width: 100%;
+      aspect-ratio: 1 / 1; 
+      overflow: hidden;
+    }
 
     .card-inner img {
-      display: block; width: 100%; height: auto;
-      transition: transform 0.4s ease;
+      display: block; 
+      width: 100%; 
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
     }
 
     .card:hover .card-inner img { transform: scale(1.03); }
@@ -231,19 +240,18 @@ import { DriveService, DriveImage } from '../drive/drive.service';
     .download-icon-btn svg { width: 14px; height: 14px; }
 
     /* ── Skeleton ── */
-    .skeleton-grid { columns: 4; column-gap: 1rem; }
-
-    .skeleton-card {
-      break-inside: avoid;
-      margin-bottom: 1rem;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.05);
-      animation: shimmer 1.5s ease infinite;
-      min-height: 200px;
+    .skeleton-grid { 
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
     }
 
-    .skeleton-card:nth-child(3n)   { min-height: 260px; }
-    .skeleton-card:nth-child(5n+1) { min-height: 160px; }
+    .skeleton-card {
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      animation: shimmer 1.5s ease infinite;
+    }
 
     @keyframes shimmer {
       0%,100% { opacity: 0.4; }
