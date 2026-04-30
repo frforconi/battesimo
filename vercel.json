@@ -1,14 +1,9 @@
 {
-  "version": 2,
-  "cleanUrls": true,
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/browser/index.html"
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "dist/frontend",
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "@vercel/node@3"
     }
-  ]
+  }
 }
