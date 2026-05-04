@@ -6,8 +6,6 @@ const defaultFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", process.env.FRONTEND_URL || "*");
   res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Expose-Headers", "X-Total-Files");
   if (req.method === "OPTIONS") return res.status(200).end();
 
   if (!requireAuth(req, res)) return;
@@ -37,16 +35,22 @@ module.exports = async (req, res) => {
       return res.status(404).json({ error: "No images found in folder" });
     }
 
-    // 2. Setup archiver — stream immediately to the client
-    const archive = archiver("zip", { zlib: { level: 1 } }); // level 1 = fast compression (images are already compressed)
+    // 2. Setup archiver
+    const archive = archiver("zip", {
+      zlib: { level: 5 }, // Moderate compression for speed
+    });
 
+    // 3. Set headers for zip download
     res.setHeader("Content-Type", "application/zip");
-    res.setHeader("Content-Disposition", `attachment; filename="gallery-photos.zip"`);
-    res.setHeader("X-Total-Files", String(allFiles.length));
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="gallery-photos.zip"`
+    );
 
+    // Pipe archive data to the response
     archive.pipe(res);
 
-    // 3. Add files one by one — archiver streams each to the response as it goes
+    // 4. Add files to the archive
     for (const file of allFiles) {
       try {
         const fileResponse = await drive.files.get(
@@ -55,10 +59,12 @@ module.exports = async (req, res) => {
         );
         archive.append(fileResponse.data, { name: file.name });
       } catch (err) {
-        console.error(`Error adding file ${file.name}:`, err.message);
+        console.error(`Error adding file ${file.name} to zip:`, err.message);
+        // We continue with other files even if one fails
       }
     }
 
+    // 5. Finalize the archive
     await archive.finalize();
   } catch (err) {
     console.error("Download all error:", err.message);

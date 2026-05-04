@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService, User } from '../auth/auth.service';
 import { DriveService, DriveImage } from '../drive/drive.service';
+import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
 @Component({
@@ -106,11 +107,12 @@ import { saveAs } from 'file-saver';
         <div class="zip-modal">
           <div class="zip-icon">📦</div>
           <h3 class="zip-title">{{ zipStatus() }}</h3>
-          <p class="zip-detail">{{ zipTotal() }} photos • {{ zipMb() }} MB downloaded</p>
+          <p class="zip-detail">{{ zipCurrent() }} / {{ zipTotal() }} photos</p>
           <div class="zip-bar-track">
-            <div class="zip-bar-fill-pulse"></div>
+            <div class="zip-bar-fill" [style.width.%]="zipPercent()"></div>
           </div>
-          <button class="zip-cancel" (click)="cancelZip()">Cancel</button>
+          <p class="zip-percent-label">{{ zipPercent() | number:'1.0-0' }}%</p>
+          <button class="zip-cancel" *ngIf="zipStatus() !== 'Creating ZIP...'" (click)="cancelZip()">Cancel</button>
         </div>
       </div>
 
@@ -489,16 +491,16 @@ import { saveAs } from 'file-saver';
       background: rgba(255,255,255,0.08);
       border-radius: 3px; overflow: hidden;
     }
-    .zip-bar-fill-pulse {
+    .zip-bar-fill {
       height: 100%;
-      width: 40%;
       background: linear-gradient(90deg, rgba(150,120,255,0.8), rgba(100,200,255,0.8));
       border-radius: 3px;
-      animation: barPulse 1.5s ease-in-out infinite;
+      transition: width 0.3s ease;
     }
-    @keyframes barPulse {
-      0%   { transform: translateX(-100%); }
-      100% { transform: translateX(350%); }
+    .zip-percent-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.78rem; color: rgba(150,120,255,0.8);
+      margin-top: 0.6rem;
     }
     .zip-cancel {
       margin-top: 1.2rem;
@@ -526,9 +528,13 @@ export class GalleryComponent implements OnInit, OnDestroy {
   // ZIP download progress
   zipProgress = signal(false);
   zipStatus = signal('');
+  zipCurrent = signal(0);
   zipTotal = signal(0);
-  zipMb = signal('0');
-  private abortController: AbortController | null = null;
+  zipPercent = computed(() => {
+    const total = this.zipTotal();
+    return total > 0 ? (this.zipCurrent() / total) * 100 : 0;
+  });
+  private zipCancelled = false;
 
   currentLightboxImage = computed(() => {
     const idx = this.lightboxIndex();
@@ -629,39 +635,67 @@ export class GalleryComponent implements OnInit, OnDestroy {
   }
 
   async downloadAll(): Promise<void> {
-    this.abortController = new AbortController();
+    this.zipCancelled = false;
     this.zipProgress.set(true);
-    this.zipStatus.set('Preparing download...');
+    this.zipStatus.set('Fetching file list...');
+    this.zipCurrent.set(0);
     this.zipTotal.set(0);
-    this.zipMb.set('0');
 
     try {
-      const blob = await this.drive.downloadAllAsZipStream(
-        (progress) => {
-          this.zipTotal.set(progress.totalFiles);
-          this.zipMb.set((progress.receivedBytes / (1024 * 1024)).toFixed(1));
-          this.zipStatus.set('Downloading photos...');
-        },
-        this.abortController.signal
-      );
-
-      saveAs(blob, 'gallery-photos.zip');
-      this.zipProgress.set(false);
-    } catch (err: any) {
-      if (err?.name === 'AbortError') {
-        // User cancelled
-      } else {
-        console.error('Download all error:', err);
+      // 1. Get full file list from API
+      const listRes = await this.drive.listAllFiles().toPromise();
+      if (!listRes || listRes.files.length === 0) {
+        this.zipProgress.set(false);
+        return;
       }
+
+      const files = listRes.files;
+      this.zipTotal.set(files.length);
+      this.zipStatus.set('Downloading photos...');
+
+      const zip = new JSZip();
+      const CONCURRENCY = 3;
+
+      // 2. Download files in parallel batches
+      for (let i = 0; i < files.length; i += CONCURRENCY) {
+        if (this.zipCancelled) {
+          this.zipProgress.set(false);
+          return;
+        }
+
+        const batch = files.slice(i, i + CONCURRENCY);
+        const results = await Promise.allSettled(
+          batch.map((f) => this.drive.downloadFileAsBlob(f.id).then((blob) => ({ name: f.name, blob })))
+        );
+
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            zip.file(result.value.name, result.value.blob);
+          }
+          this.zipCurrent.update((v) => v + 1);
+        }
+      }
+
+      if (this.zipCancelled) {
+        this.zipProgress.set(false);
+        return;
+      }
+
+      // 3. Generate ZIP
+      this.zipStatus.set('Creating ZIP...');
+      const content = await zip.generateAsync({ type: 'blob' });
+
+      // 4. Save
+      saveAs(content, 'gallery-photos.zip');
       this.zipProgress.set(false);
-    } finally {
-      this.abortController = null;
+    } catch (err) {
+      console.error('Download all error:', err);
+      this.zipProgress.set(false);
     }
   }
 
   cancelZip(): void {
-    this.abortController?.abort();
-    this.zipProgress.set(false);
+    this.zipCancelled = true;
   }
 
   logout(): void {
