@@ -442,7 +442,7 @@ import { DriveService, DriveImage } from '../drive/drive.service';
       .fab-download { padding: 1rem; }
     }
   `],
-,StartLine:373,TargetContent:})
+})
 export class GalleryComponent implements OnInit, OnDestroy {
   user = signal<User | null>(null);
   images = signal<DriveImage[]>([]);
