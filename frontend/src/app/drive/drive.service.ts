@@ -36,5 +36,12 @@ export class DriveService {
     // because of the Content-Disposition header, and will send the auth cookie.
     window.location.href = `/api/drive/download?fileId=${fileId}`;
   }
+
+  downloadAllImages(folderId?: string): void {
+    const url = folderId 
+      ? `/api/drive/download-all?folderId=${folderId}`
+      : '/api/drive/download-all';
+    window.location.href = url;
+  }
 }
 

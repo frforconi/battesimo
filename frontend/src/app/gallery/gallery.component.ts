@@ -86,6 +86,20 @@ import { DriveService, DriveImage } from '../drive/drive.service';
         </div>
       </main>
 
+      <!-- Floating Download All Button -->
+      <button 
+        class="fab-download" 
+        *ngIf="images().length > 0 && !loading()"
+        (click)="downloadAll()"
+        title="Download all photos as ZIP">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 17L12 7M12 17L8 13M12 17L16 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 17L4 18C4 19.6569 5.34315 21 7 21L17 21C18.6569 21 20 19.6569 20 18L20 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 3V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Download All</span>
+      </button>
+
       <!-- Lightbox -->
       <div
         class="lightbox"
@@ -372,8 +386,63 @@ import { DriveService, DriveImage } from '../drive/drive.service';
     }
     .lb-download:hover { background: rgba(150,120,255,0.3); color: #fff; }
     .lb-download svg { width: 14px; height: 14px; }
+
+    /* ── Floating Button ── */
+    .fab-download {
+      position: fixed;
+      bottom: 2.5rem;
+      right: 2.5rem;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.8rem 1.4rem;
+      background: rgba(150, 120, 255, 0.15);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(150, 120, 255, 0.4);
+      border-radius: 100px;
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(150, 120, 255, 0.1);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation: fabIn 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+
+    @keyframes fabIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.9); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .fab-download:hover {
+      background: rgba(150, 120, 255, 0.25);
+      border-color: rgba(150, 120, 255, 0.6);
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(150, 120, 255, 0.2);
+    }
+
+    .fab-download:active {
+      transform: translateY(-2px) scale(0.98);
+    }
+
+    .fab-download svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .fab-download {
+        bottom: 1.5rem;
+        right: 1.5rem;
+        padding: 0.7rem 1.2rem;
+      }
+      .fab-download span { display: none; }
+      .fab-download { padding: 1rem; }
+    }
   `],
-})
+,StartLine:373,TargetContent:})
 export class GalleryComponent implements OnInit, OnDestroy {
   user = signal<User | null>(null);
   images = signal<DriveImage[]>([]);
@@ -478,6 +547,10 @@ export class GalleryComponent implements OnInit, OnDestroy {
   download(event: Event, fileId: string): void {
     event.stopPropagation();
     this.drive.downloadImage(fileId);
+  }
+
+  downloadAll(): void {
+    this.drive.downloadAllImages();
   }
 
   logout(): void {
