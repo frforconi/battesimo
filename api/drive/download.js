@@ -14,6 +14,8 @@ module.exports = async (req, res) => {
   try {
     const drive = getDriveClient();
 
+    const start = Date.now();
+    console.log(`[${new Date().toISOString()}] START ${req.query.fileId}`);
     // 1. Get file metadata to get the original filename
     const metadata = await drive.files.get({
       fileId,
@@ -28,6 +30,7 @@ module.exports = async (req, res) => {
       { fileId, alt: "media" },
       { responseType: "stream" }
     );
+    console.log(`[${new Date().toISOString()}] Google Drive responded in ${Date.now() - start}ms`);
 
     // 3. Set headers for download
     res.setHeader("Content-Type", mimeType || "application/octet-stream");
