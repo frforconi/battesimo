@@ -23,6 +23,11 @@ export interface ListAllResponse {
   total: number;
 }
 
+export interface DownloadProgress {
+  receivedBytes: number;
+  totalFiles: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DriveService {
   constructor(private http: HttpClient) {}
@@ -41,14 +46,39 @@ export class DriveService {
     return this.http.get<ListAllResponse>('/api/drive/list-all');
   }
 
-  /** Download a single file as a Blob via the API proxy */
-  downloadFileAsBlob(fileId: string): Promise<Blob> {
-    return fetch(`/api/drive/download?fileId=${fileId}`, {
+  /**
+   * Download all images as a ZIP via server-side streaming.
+   * Uses ReadableStream to track download progress in real-time.
+   * Returns the final Blob when complete.
+   */
+  async downloadAllAsZipStream(
+    onProgress: (progress: DownloadProgress) => void,
+    abortSignal?: AbortSignal
+  ): Promise<Blob> {
+    const response = await fetch('/api/drive/download-all', {
       credentials: 'include',
-    }).then((res) => {
-      if (!res.ok) throw new Error(`Download failed for ${fileId}`);
-      return res.blob();
+      signal: abortSignal,
     });
+
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+
+    const totalFiles = parseInt(response.headers.get('X-Total-Files') || '0', 10);
+    const reader = response.body!.getReader();
+    const chunks: Uint8Array[] = [];
+    let receivedBytes = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chunks.push(value);
+      receivedBytes += value.length;
+      onProgress({ receivedBytes, totalFiles });
+    }
+
+    return new Blob(chunks, { type: 'application/zip' });
   }
 
   downloadImage(fileId: string): void {
