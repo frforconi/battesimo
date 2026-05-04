@@ -89,7 +89,7 @@ import { saveAs } from 'file-saver';
       </main>
 
       <!-- Floating Download All Button -->
-      <button 
+      <!-- <button 
         class="fab-download" 
         *ngIf="images().length > 0 && !loading() && !zipProgress()"
         (click)="downloadAll()"
@@ -101,7 +101,7 @@ import { saveAs } from 'file-saver';
         </svg>
         <span>Download All</span>
       </button>
-
+ -->
       <!-- Download Progress Overlay -->
       <div class="zip-overlay" *ngIf="zipProgress()">
         <div class="zip-modal">
