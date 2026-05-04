@@ -18,6 +18,11 @@ export interface ImagesResponse {
   nextPageToken: string | null;
 }
 
+export interface ListAllResponse {
+  files: Pick<DriveImage, "name" | "id" | "mimeType">[];
+  total: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DriveService {
   constructor(private http: HttpClient) {}
@@ -31,17 +36,24 @@ export class DriveService {
     return this.http.get<ImagesResponse>('/api/drive/images', { params });
   }
 
+  /** Get the full list of file metadata (id, name) — no file content, fast */
+  listAllFiles(): Observable<ListAllResponse> {
+    return this.http.get<ListAllResponse>('/api/drive/list-all');
+  }
+
+  /** Download a single file as a Blob via the API proxy */
+  downloadFileAsBlob(fileId: string): Promise<Blob> {
+    return fetch(`/api/drive/download?fileId=${fileId}`, {
+      credentials: 'include',
+    }).then((res) => {
+      if (!res.ok) throw new Error(`Download failed for ${fileId}`);
+      return res.blob();
+    });
+  }
+
   downloadImage(fileId: string): void {
     // Simply redirect to the API endpoint. The browser will handle the download
     // because of the Content-Disposition header, and will send the auth cookie.
     window.location.href = `/api/drive/download?fileId=${fileId}`;
   }
-
-  downloadAllImages(folderId?: string): void {
-    const url = folderId 
-      ? `/api/drive/download-all?folderId=${folderId}`
-      : '/api/drive/download-all';
-    window.location.href = url;
-  }
 }
-

@@ -9,6 +9,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService, User } from '../auth/auth.service';
 import { DriveService, DriveImage } from '../drive/drive.service';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 @Component({
   selector: 'app-gallery',
@@ -89,7 +91,7 @@ import { DriveService, DriveImage } from '../drive/drive.service';
       <!-- Floating Download All Button -->
       <button 
         class="fab-download" 
-        *ngIf="images().length > 0 && !loading()"
+        *ngIf="images().length > 0 && !loading() && !zipProgress()"
         (click)="downloadAll()"
         title="Download all photos as ZIP">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -99,6 +101,20 @@ import { DriveService, DriveImage } from '../drive/drive.service';
         </svg>
         <span>Download All</span>
       </button>
+
+      <!-- Download Progress Overlay -->
+      <div class="zip-overlay" *ngIf="zipProgress()">
+        <div class="zip-modal">
+          <div class="zip-icon">📦</div>
+          <h3 class="zip-title">{{ zipStatus() }}</h3>
+          <p class="zip-detail">{{ zipCurrent() }} / {{ zipTotal() }} photos</p>
+          <div class="zip-bar-track">
+            <div class="zip-bar-fill" [style.width.%]="zipPercent()"></div>
+          </div>
+          <p class="zip-percent-label">{{ zipPercent() | number:'1.0-0' }}%</p>
+          <button class="zip-cancel" *ngIf="zipStatus() !== 'Creating ZIP...'" (click)="cancelZip()">Cancel</button>
+        </div>
+      </div>
 
       <!-- Lightbox -->
       <div
@@ -441,6 +457,64 @@ import { DriveService, DriveImage } from '../drive/drive.service';
       .fab-download span { display: none; }
       .fab-download { padding: 1rem; }
     }
+
+    /* ── ZIP Progress Overlay ── */
+    .zip-overlay {
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: center;
+      animation: lbIn 0.25s ease;
+    }
+    .zip-modal {
+      background: rgba(25,25,35,0.95);
+      border: 1px solid rgba(150,120,255,0.25);
+      border-radius: 20px;
+      padding: 2.5rem 3rem;
+      text-align: center;
+      min-width: 340px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 40px rgba(150,120,255,0.08);
+    }
+    .zip-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .zip-title {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500; font-size: 1.1rem; color: #f0ece8;
+      margin-bottom: 0.4rem;
+    }
+    .zip-detail {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem; color: rgba(240,236,232,0.45);
+      margin-bottom: 1.2rem;
+    }
+    .zip-bar-track {
+      width: 100%; height: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px; overflow: hidden;
+    }
+    .zip-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, rgba(150,120,255,0.8), rgba(100,200,255,0.8));
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .zip-percent-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.78rem; color: rgba(150,120,255,0.8);
+      margin-top: 0.6rem;
+    }
+    .zip-cancel {
+      margin-top: 1.2rem;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(240,236,232,0.5);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.78rem;
+      padding: 0.4rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .zip-cancel:hover { border-color: rgba(255,100,100,0.5); color: rgba(255,100,100,0.8); }
   `],
 })
 export class GalleryComponent implements OnInit, OnDestroy {
@@ -450,6 +524,17 @@ export class GalleryComponent implements OnInit, OnDestroy {
   error = signal('');
   nextPageToken = signal<string | null>(null);
   lightboxIndex = signal<number | null>(null);
+
+  // ZIP download progress
+  zipProgress = signal(false);
+  zipStatus = signal('');
+  zipCurrent = signal(0);
+  zipTotal = signal(0);
+  zipPercent = computed(() => {
+    const total = this.zipTotal();
+    return total > 0 ? (this.zipCurrent() / total) * 100 : 0;
+  });
+  private zipCancelled = false;
 
   currentLightboxImage = computed(() => {
     const idx = this.lightboxIndex();
@@ -549,8 +634,68 @@ export class GalleryComponent implements OnInit, OnDestroy {
     this.drive.downloadImage(fileId);
   }
 
-  downloadAll(): void {
-    this.drive.downloadAllImages();
+  async downloadAll(): Promise<void> {
+    this.zipCancelled = false;
+    this.zipProgress.set(true);
+    this.zipStatus.set('Fetching file list...');
+    this.zipCurrent.set(0);
+    this.zipTotal.set(0);
+
+    try {
+      // 1. Get full file list from API
+      const listRes = await this.drive.listAllFiles().toPromise();
+      if (!listRes || listRes.files.length === 0) {
+        this.zipProgress.set(false);
+        return;
+      }
+
+      const files = listRes.files;
+      this.zipTotal.set(files.length);
+      this.zipStatus.set('Downloading photos...');
+
+      const zip = new JSZip();
+      const CONCURRENCY = 3;
+
+      // 2. Download files in parallel batches
+      for (let i = 0; i < files.length; i += CONCURRENCY) {
+        if (this.zipCancelled) {
+          this.zipProgress.set(false);
+          return;
+        }
+
+        const batch = files.slice(i, i + CONCURRENCY);
+        const results = await Promise.allSettled(
+          batch.map((f) => this.drive.downloadFileAsBlob(f.id).then((blob) => ({ name: f.name, blob })))
+        );
+
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            zip.file(result.value.name, result.value.blob);
+          }
+          this.zipCurrent.update((v) => v + 1);
+        }
+      }
+
+      if (this.zipCancelled) {
+        this.zipProgress.set(false);
+        return;
+      }
+
+      // 3. Generate ZIP
+      this.zipStatus.set('Creating ZIP...');
+      const content = await zip.generateAsync({ type: 'blob' });
+
+      // 4. Save
+      saveAs(content, 'gallery-photos.zip');
+      this.zipProgress.set(false);
+    } catch (err) {
+      console.error('Download all error:', err);
+      this.zipProgress.set(false);
+    }
+  }
+
+  cancelZip(): void {
+    this.zipCancelled = true;
   }
 
   logout(): void {
