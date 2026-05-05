@@ -45,7 +45,7 @@ app.use(express.static(frontendPath));
 
 // --- SPA Fallback ---
 // Redirect all other requests to index.html so Angular can handle routing
-app.get("/:path*", (req, res) => {
+app.use((req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
