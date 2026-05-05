@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "build": "npm run build -w frontend",
+    "start": "node api/index.js",
     "dev:api": "npm run dev -w api",
     "dev:frontend": "npm run start -w frontend",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:frontend\""
