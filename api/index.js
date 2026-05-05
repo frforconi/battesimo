@@ -38,6 +38,9 @@ app.all("/api/auth/me", require("./auth/me"));
 app.all("/api/auth/logout", require("./auth/logout"));
 app.all("/api/drive/images", require("./drive/images"));
 app.all("/api/drive/thumbnail", require("./drive/thumbnail"));
+app.all("/api/drive/list-all", require("./drive/list-all"));
+app.all("/api/drive/download", require("./drive/download"));
+app.all("/api/drive/download-all", require("./drive/download-all"));
 
 // --- Static Frontend Files ---
 const frontendPath = path.join(__dirname, "../frontend/dist/browser");
