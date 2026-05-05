@@ -41,6 +41,9 @@ app.all("/api/drive/thumbnail", require("./drive/thumbnail"));
 app.all("/api/drive/list-all", require("./drive/list-all"));
 app.all("/api/drive/download", require("./drive/download"));
 app.all("/api/drive/download-all", require("./drive/download-all"));
+app.all("/api/drive/zip/start", require("./drive/zip-start"));
+app.all("/api/drive/zip/status", require("./drive/zip-status"));
+app.all("/api/drive/zip/download", require("./drive/zip-download"));
 
 // --- Static Frontend Files ---
 const frontendPath = path.join(__dirname, "../frontend/dist/browser");

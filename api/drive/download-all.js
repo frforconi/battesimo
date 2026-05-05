@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
 
     // 2. Setup archiver
     const archive = archiver("zip", {
-      zlib: { level: 5 }, // Moderate compression for speed
+      zlib: { level: 1 }, // Level 1 is much faster than 5 and sufficient for already compressed images
     });
 
     // 3. Set headers for zip download
@@ -51,6 +51,8 @@ module.exports = async (req, res) => {
     archive.pipe(res);
 
     // 4. Add files to the archive
+    console.log(`📦 Starting ZIP generation for ${allFiles.length} files...`);
+    
     for (const file of allFiles) {
       try {
         const fileResponse = await drive.files.get(
@@ -59,13 +61,14 @@ module.exports = async (req, res) => {
         );
         archive.append(fileResponse.data, { name: file.name });
       } catch (err) {
-        console.error(`Error adding file ${file.name} to zip:`, err.message);
-        // We continue with other files even if one fails
+        console.error(`❌ Error adding file ${file.name} to zip:`, err.message);
+        // We continue with other files
       }
     }
 
     // 5. Finalize the archive
     await archive.finalize();
+    console.log(`✅ ZIP generation complete.`);
   } catch (err) {
     console.error("Download all error:", err.message);
     if (!res.headersSent) {

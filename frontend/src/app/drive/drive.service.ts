@@ -56,4 +56,26 @@ export class DriveService {
     // because of the Content-Disposition header, and will send the auth cookie.
     window.location.href = `/api/drive/download?fileId=${fileId}`;
   }
+
+  downloadAll(folderId?: string): void {
+    const url = folderId 
+      ? `/api/drive/download-all?folderId=${folderId}` 
+      : '/api/drive/download-all';
+    window.location.href = url;
+  }
+
+  startZipTask(folderId?: string): Observable<{ taskId: string, total: number }> {
+    let params = new HttpParams();
+    if (folderId) params = params.set('folderId', folderId);
+    return this.http.get<{ taskId: string, total: number }>('/api/drive/zip/start', { params });
+  }
+
+  getZipStatus(taskId: string): Observable<{ status: string, current: number, total: number, error?: string }> {
+    const params = new HttpParams().set('taskId', taskId);
+    return this.http.get<{ status: string, current: number, total: number, error?: string }>('/api/drive/zip/status', { params });
+  }
+
+  getZipDownloadUrl(taskId: string): string {
+    return `/api/drive/zip/download?taskId=${taskId}`;
+  }
 }

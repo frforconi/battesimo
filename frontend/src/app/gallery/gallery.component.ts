@@ -634,68 +634,66 @@ export class GalleryComponent implements OnInit, OnDestroy {
     this.drive.downloadImage(fileId);
   }
 
-  async downloadAll(): Promise<void> {
+
+  downloadAll(): void {
     this.zipCancelled = false;
     this.zipProgress.set(true);
-    this.zipStatus.set('Fetching file list...');
+    this.zipStatus.set('Initializing task...');
     this.zipCurrent.set(0);
     this.zipTotal.set(0);
 
-    try {
-      // 1. Get full file list from API
-      const listRes = await this.drive.listAllFiles().toPromise();
-      if (!listRes || listRes.files.length === 0) {
+    this.drive.startZipTask().subscribe({
+      next: (res) => {
+        this.zipTotal.set(res.total);
+        this.pollZipStatus(res.taskId);
+      },
+      error: (err) => {
+        console.error('Failed to start ZIP task:', err);
         this.zipProgress.set(false);
-        return;
+        alert('Could not start download. Please try again.');
       }
+    });
+  }
 
-      const files = listRes.files;
-      this.zipTotal.set(files.length);
-      this.zipStatus.set('Downloading photos...');
-
-      const zip = new JSZip();
-      const CONCURRENCY = 3;
-
-      // 2. Download files in parallel batches
-      for (let i = 0; i < files.length; i += CONCURRENCY) {
-        if (this.zipCancelled) {
-          this.zipProgress.set(false);
-          return;
-        }
-
-        const batch = files.slice(i, i + CONCURRENCY);
-        const results = await Promise.allSettled(
-          batch.map((f) => this.drive.downloadFileAsBlob(f.id).then((blob) => ({ name: f.name, blob })))
-        );
-
-        for (const result of results) {
-          if (result.status === 'fulfilled') {
-            zip.file(result.value.name, result.value.blob);
-          }
-          this.zipCurrent.update((v) => v + 1);
-        }
-      }
-
+  private pollZipStatus(taskId: string): void {
+    const poll = setInterval(() => {
       if (this.zipCancelled) {
-        this.zipProgress.set(false);
+        clearInterval(poll);
         return;
       }
 
-      // 3. Generate ZIP
-      this.zipStatus.set('Creating ZIP...');
-      const content = await zip.generateAsync({ type: 'blob' });
-
-      // 4. Save
-      saveAs(content, 'gallery-photos.zip');
-      this.zipProgress.set(false);
-    } catch (err) {
-      console.error('Download all error:', err);
-      this.zipProgress.set(false);
-    }
+      this.drive.getZipStatus(taskId).subscribe({
+        next: (res) => {
+          this.zipCurrent.set(res.current);
+          this.zipTotal.set(res.total);
+          
+          if (res.status === 'completed') {
+            clearInterval(poll);
+            this.zipStatus.set('Creating ZIP...');
+            // Trigger actual download
+            window.location.href = this.drive.getZipDownloadUrl(taskId);
+            setTimeout(() => this.zipProgress.set(false), 2000);
+          } else if (res.status === 'failed') {
+            clearInterval(poll);
+            this.zipStatus.set('Error occurred');
+            alert('ZIP generation failed: ' + res.error);
+            this.zipProgress.set(false);
+          } else {
+            this.zipStatus.set('Downloading photos to server...');
+          }
+        },
+        error: (err) => {
+          console.error('Status poll error:', err);
+          clearInterval(poll);
+          this.zipProgress.set(false);
+        }
+      });
+    }, 1000);
   }
 
   cancelZip(): void {
     this.zipCancelled = true;
+    this.zipProgress.set(false);
   }
 
   logout(): void {
