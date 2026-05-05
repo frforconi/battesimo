@@ -75,6 +75,11 @@ export class DriveService {
     return this.http.get<{ status: string, current: number, total: number, error?: string }>('/api/drive/zip/status', { params });
   }
 
+  cancelZipTask(taskId: string): Observable<any> {
+    const params = new HttpParams().set('taskId', taskId);
+    return this.http.get<any>('/api/drive/zip/cancel', { params });
+  }
+
   getZipDownloadUrl(taskId: string): string {
     return `/api/drive/zip/download?taskId=${taskId}`;
   }

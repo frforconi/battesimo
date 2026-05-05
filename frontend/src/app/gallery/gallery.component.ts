@@ -535,6 +535,7 @@ export class GalleryComponent implements OnInit, OnDestroy {
     return total > 0 ? (this.zipCurrent() / total) * 100 : 0;
   });
   private zipCancelled = false;
+  private currentTaskId: string | null = null; // Store taskId
 
   currentLightboxImage = computed(() => {
     const idx = this.lightboxIndex();
@@ -634,16 +635,17 @@ export class GalleryComponent implements OnInit, OnDestroy {
     this.drive.downloadImage(fileId);
   }
 
-
   downloadAll(): void {
     this.zipCancelled = false;
     this.zipProgress.set(true);
     this.zipStatus.set('Initializing task...');
     this.zipCurrent.set(0);
     this.zipTotal.set(0);
+    this.currentTaskId = null;
 
     this.drive.startZipTask().subscribe({
       next: (res) => {
+        this.currentTaskId = res.taskId;
         this.zipTotal.set(res.total);
         this.pollZipStatus(res.taskId);
       },
@@ -670,12 +672,14 @@ export class GalleryComponent implements OnInit, OnDestroy {
           if (res.status === 'completed') {
             clearInterval(poll);
             this.zipStatus.set('Creating ZIP...');
+            this.currentTaskId = null;
             // Trigger actual download
             window.location.href = this.drive.getZipDownloadUrl(taskId);
             setTimeout(() => this.zipProgress.set(false), 2000);
           } else if (res.status === 'failed') {
             clearInterval(poll);
             this.zipStatus.set('Error occurred');
+            this.currentTaskId = null;
             alert('ZIP generation failed: ' + res.error);
             this.zipProgress.set(false);
           } else {
@@ -694,6 +698,14 @@ export class GalleryComponent implements OnInit, OnDestroy {
   cancelZip(): void {
     this.zipCancelled = true;
     this.zipProgress.set(false);
+    
+    if (this.currentTaskId) {
+      this.drive.cancelZipTask(this.currentTaskId).subscribe({
+        next: () => console.log('Task cancellation sent to server'),
+        error: (err) => console.error('Error sending cancellation:', err)
+      });
+      this.currentTaskId = null;
+    }
   }
 
   logout(): void {

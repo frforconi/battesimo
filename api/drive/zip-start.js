@@ -61,6 +61,15 @@ module.exports = async (req, res) => {
       archive.pipe(output);
 
       for (let i = 0; i < allFiles.length; i++) {
+        // Abort if task was cancelled
+        if (zipTasks.isCancelled(taskId)) {
+          console.log(`⏹ Task ${taskId} cancelled. Aborting...`);
+          archive.abort(); // Archiver specific abort
+          output.end();
+          fs.unlink(zipPath, () => {}); // Delete partial file
+          return;
+        }
+
         const file = allFiles[i];
         try {
           const fileResponse = await drive.files.get(

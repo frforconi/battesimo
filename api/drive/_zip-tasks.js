@@ -8,12 +8,25 @@ module.exports = {
     tasks.set(id, {
       id,
       status: "processing",
+      cancelled: false, // New flag
       current: 0,
       total: total,
       filePath: null,
       error: null,
       createdAt: Date.now(),
     });
+  },
+
+  cancelTask(id) {
+    const task = tasks.get(id);
+    if (task) {
+      task.cancelled = true;
+      task.status = "cancelled";
+    }
+  },
+
+  isCancelled(id) {
+    return tasks.get(id)?.cancelled === true;
   },
 
   updateProgress(id, current) {
